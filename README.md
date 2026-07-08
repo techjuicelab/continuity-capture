@@ -1,5 +1,17 @@
 # ContinuityCapture
 
+<img src="icon.png" width="128" align="right" alt="ContinuityCapture icon">
+
+> **English TL;DR** — A tiny native macOS helper that fires Continuity Camera
+> (Take Photo / Scan Documents on your iPhone/iPad) from a hotkey and saves the
+> result straight into a folder as JPEG/PDF — no Preview window, no iCloud
+> delay, no resident process, no Accessibility permission. It works by putting
+> Apple's documented `NSMenuItem.importFromDeviceIdentifier` magic item into
+> the app's main menu and firing it headlessly via `submenu.update()` +
+> `performActionForItem`. Build with `./build.sh` (installs to
+> `~/Applications`), or grab the prebuilt universal app from Releases.
+> Launch: `open -na ContinuityCapture --args photo|scan`. MIT licensed.
+
 아이폰/아이패드 Continuity Camera(사진 찍기·문서 스캔)를 단축키 한 번으로 실행하고,
 결과물을 **Preview를 거치지 않고 바로 파일로 저장**하는 초소형 네이티브 헬퍼 앱.
 
