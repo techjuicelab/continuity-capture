@@ -185,19 +185,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSText
         } else if config.selfTest {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { self.selfTest() }
         } else {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { self.triggerFromMainMenu() }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { self.triggerFromMainMenu(attempt: 1) }
         }
     }
 
     /// Headless trigger: the system attaches the device submenu to the magic
     /// menu item at launch; update() populates it without any menu display.
-    func triggerFromMainMenu() {
+    /// The submenu appears asynchronously, so poll from 0.2s up to ~3s and
+    /// fire the moment it is ready instead of waiting a fixed delay.
+    func triggerFromMainMenu(attempt: Int) {
+        func retryOrFail(_ reason: String) {
+            if attempt < 15 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    self.triggerFromMainMenu(attempt: attempt + 1)
+                }
+            } else {
+                warn("\(reason) — device not nearby/unlocked?")
+                NSSound(named: "Basso")?.play()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { NSApp.terminate(nil) }
+            }
+        }
+
         guard let fileMenu = NSApp.mainMenu?.item(at: 1)?.submenu,
               let magic = fileMenu.items.first(where: { $0.submenu != nil }),
               let sub = magic.submenu else {
-            warn("import submenu missing — is a device signed into the same Apple ID nearby?")
-            NSSound(named: "Basso")?.play()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { NSApp.terminate(nil) }
+            retryOrFail("import submenu never attached")
             return
         }
         sub.update()
@@ -212,12 +224,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSText
             }
         }
         guard let idx = best else {
-            warn("no available '\(config.actionTitles[0])' item — device not nearby/unlocked?")
-            dumpNamed(sub)
-            NSSound(named: "Basso")?.play()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { NSApp.terminate(nil) }
+            retryOrFail("no available '\(config.actionTitles[0])' item")
             return
         }
+        log("ready after \(attempt) attempt(s) (~\(Double(attempt) * 0.2)s)")
         let item = sub.items[idx]
         log("firing '\(item.title)' (index \(idx)) action=\(item.action.map(String.init(describing:)) ?? "nil") target=\(item.target.map { String(describing: type(of: $0)) } ?? "nil")")
         invoked = true
