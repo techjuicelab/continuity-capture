@@ -73,11 +73,15 @@ cd continuity-capture && ./build.sh
 
 이후 `shortcuts/`의 두 파일을 더블클릭해 가져오고 키보드 단축키를 지정하면 끝.
 
-빌드 없이 쓰려면: 다른 Mac의 `~/Applications/ContinuityCapture.app`을 AirDrop·
-USB·SMB로 복사해 `~/Applications`에 넣기만 해도 동작한다(자기완결 번들, 외부
-의존성 없음, Apple Silicon+Intel 유니버설). 단, 웹 브라우저로 내려받은 경우엔
-격리 속성 때문에 첫 실행 시 우클릭→열기가 필요하다. `.app` 번들은 빌드
-산출물이라 저장소에는 포함하지 않는다.
+빌드 없이 쓰려면 둘 중 하나:
+
+- **[Releases](https://github.com/techjuicelab/continuity-capture/releases)에서
+  `ContinuityCapture.app.zip` 다운로드** → `~/Applications`에 풀기
+- 다른 Mac의 `~/Applications/ContinuityCapture.app`을 AirDrop·USB·SMB로 복사
+
+앱은 자기완결 번들(외부 의존성 없음, Apple Silicon+Intel 유니버설)이다. 단,
+웹 브라우저로 내려받은 경우엔 격리 속성 때문에 첫 실행 시 우클릭→열기가 한 번
+필요하다. `.app` 번들은 빌드 산출물이라 git에는 넣지 않고 Releases에만 올린다.
 
 ## 데이터/보안 노트
 
