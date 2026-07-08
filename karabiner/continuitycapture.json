@@ -1,0 +1,43 @@
+{
+    "title": "ContinuityCapture",
+    "rules": [
+        {
+            "description": "iPhone Photo: opt+cmd+p fires Continuity Camera Take Photo (save to folder + clipboard + auto-paste)",
+            "manipulators": [
+                {
+                    "type": "basic",
+                    "from": {
+                        "key_code": "p",
+                        "modifiers": {
+                            "mandatory": ["command", "option"]
+                        }
+                    },
+                    "to": [
+                        {
+                            "shell_command": "open -na ContinuityCapture --args photo"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "description": "iPhone Scan: opt+cmd+s fires Continuity Camera Scan Documents (save PDF + clipboard + auto-paste)",
+            "manipulators": [
+                {
+                    "type": "basic",
+                    "from": {
+                        "key_code": "s",
+                        "modifiers": {
+                            "mandatory": ["command", "option"]
+                        }
+                    },
+                    "to": [
+                        {
+                            "shell_command": "open -na ContinuityCapture --args scan"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

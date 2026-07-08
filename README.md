@@ -132,6 +132,15 @@ app, then assign a keyboard shortcut in each shortcut's info panel. Also
 runnable from Spotlight/Siri by name. (Slightly higher key-to-launch latency
 than Alfred, since it routes through the Shortcuts runtime.)
 
+### Karabiner-Elements
+
+If you already run [Karabiner-Elements](https://karabiner-elements.pqrs.org),
+[`karabiner/continuitycapture.json`](karabiner/continuitycapture.json) provides
+two ready-made rules (⌥⌘P photo, ⌥⌘S scan). Copy it into
+`~/.config/karabiner/assets/complex_modifications/`, then enable the rules in
+Karabiner-Elements → Complex Modifications → **Add predefined rule**. Karabiner
+grabs the key at the HID level, so it works even when no launcher is running.
+
 ### Raycast / others
 
 Bind a *Run Shell Script* command to `open -na ContinuityCapture --args photo`.
@@ -283,6 +292,15 @@ Powerpack이 없으면 아래의 단축어 앱이나 Raycast를 사용.
 설정 → 고급 → **"스크립트 실행 허용"**을 켠 뒤(1회), 각 단축어 상세(ⓘ)에서
 키보드 단축키를 지정한다. Spotlight/Siri에서 이름으로도 실행된다. (단축어
 런타임을 거쳐 Alfred보다 키 입력~실행 지연이 약간 크다.)
+
+### Karabiner-Elements
+
+[Karabiner-Elements](https://karabiner-elements.pqrs.org)를 이미 쓴다면
+[`karabiner/continuitycapture.json`](karabiner/continuitycapture.json)에 규칙
+2개(⌥⌘P 사진, ⌥⌘S 스캔)가 준비되어 있다.
+`~/.config/karabiner/assets/complex_modifications/`에 복사한 뒤 Karabiner
+설정 → Complex Modifications → **Add predefined rule**에서 켜면 된다. HID
+레벨에서 키를 잡으므로 런처가 안 떠 있어도 동작한다.
 
 ### Raycast / 기타
 
