@@ -17,6 +17,9 @@ Apple's peer-to-peer Wi-Fi (AWDL — the same transport AirDrop uses).
 
 - **Photo** → `~/Pictures/from_iphone/IMG_yyyyMMdd_HHmmss.jpg`
 - **Scan** → `~/Pictures/from_iphone/Scan_yyyyMMdd_HHmmss.pdf` (multi-page → one PDF)
+- The capture is **also copied to the clipboard** — ⌘V pastes it straight into
+  Slack/Notes/KakaoTalk (as image or file attachment) or Finder (as a file).
+  One pasteboard item carries both the file reference and raw image/PDF data.
 - Runs **only while invoked** — exits immediately after saving, cancelling, or timing out
 - Needs **no permissions at all**: no Accessibility, no camera/microphone, no UI scripting
 - Plays *Glass* on save, *Basso* when no device is available
@@ -50,6 +53,7 @@ open -na ContinuityCapture --args scan
 | `--out DIR` | destination folder | `~/Pictures/from_iphone` |
 | `--device HINT` | preferred device name substring (falls back to first available) | `iPhone` |
 | `--timeout SEC` | how long to wait for the capture | `300` |
+| `--no-clipboard` | save to folder only, don't touch the clipboard | off |
 | `--self-test` | print the detected device list and exit (fires nothing) | — |
 
 Log: `/tmp/continuitycapture.log`
@@ -121,6 +125,9 @@ iCloud 딜레이가 없다.
 
 - 사진 → `~/Pictures/from_iphone/IMG_yyyyMMdd_HHmmss.jpg`
 - 스캔 → `~/Pictures/from_iphone/Scan_yyyyMMdd_HHmmss.pdf` (여러 장 = PDF 한 개)
+- 저장과 동시에 **클립보드에도 복사** — 촬영 직후 ⌘V로 카톡/메모/슬랙에는
+  이미지·파일로, Finder에는 파일로 바로 붙여넣기 가능 (파일 참조 + 원본
+  데이터를 한 항목에 담음)
 - 상주 프로세스 없음: 호출 순간에만 실행, 저장/취소/타임아웃 시 즉시 종료
 - 손쉬운 사용(Accessibility) 권한, UI 스크립팅, iCloud 불필요
 - 저장 성공 시 "Glass" 사운드, 기기를 못 찾으면 "Basso" 사운드
@@ -155,6 +162,7 @@ open -na ContinuityCapture --args scan
 | `--out DIR` | 저장 폴더 | `~/Pictures/from_iphone` |
 | `--device HINT` | 선호 기기 이름 일부 (없으면 첫 기기로 폴백) | `iPhone` |
 | `--timeout SEC` | 캡처 대기 시간 | `300` |
+| `--no-clipboard` | 폴더에만 저장하고 클립보드는 건드리지 않음 | 꺼짐 |
 | `--self-test` | 기기 목록만 출력하고 종료 (실행 안 함) | — |
 
 로그: `/tmp/continuitycapture.log`

@@ -24,6 +24,8 @@ struct Config {
     var contextMenuMode = false
     var selfTest = false
     var accessory = true
+    var clipboard = true
+    var clipTest: String?
     var captureTimeout: TimeInterval = 300
 
     static func parse() -> Config {
@@ -41,6 +43,8 @@ struct Config {
             case "--self-test": c.selfTest = true
             case "--accessory": c.accessory = true
             case "--regular": c.accessory = false
+            case "--no-clipboard": c.clipboard = false
+            case "--clip-test": if !args.isEmpty { c.clipTest = args.removeFirst() }
             case "--no-auto": c.autoTrigger = false
             case "--timeout": if !args.isEmpty { c.captureTimeout = Double(args.removeFirst()) ?? 300 }
             default: break
@@ -180,7 +184,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSText
             }
         }
 
-        if config.contextMenuMode {
+        if let testFile = config.clipTest {
+            // exercise the save+clipboard pipeline with a local file (no capture)
+            if let d = try? Data(contentsOf: URL(fileURLWithPath: testFile)), saveData(d, suggestedName: nil) {
+                return
+            }
+            warn("clip-test failed for \(testFile)")
+            NSApp.terminate(nil)
+        } else if config.contextMenuMode {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { self.popImportMenu() }
         } else if config.selfTest {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { self.selfTest() }
@@ -480,9 +491,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSText
         }
         received = true
         log("saved: \(p)")
+        copyToClipboard(d, path: p)
         NSSound(named: "Glass")?.play()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { NSApp.terminate(nil) }
         return true
+    }
+
+    /// Put the capture on the general pasteboard as ONE item carrying both a
+    /// file reference (Finder/Slack/KakaoTalk paste = file attach) and raw
+    /// image/PDF data (Notes/editors paste = inline image). Concrete data —
+    /// not promises — so the clipboard survives this app quitting.
+    func copyToClipboard(_ d: Data, path: String) {
+        guard config.clipboard else { return }
+        let pb = NSPasteboard.general
+        pb.clearContents()
+        let item = NSPasteboardItem()
+        item.setString(URL(fileURLWithPath: path).absoluteString, forType: .fileURL)
+        if d.starts(with: [0xFF, 0xD8, 0xFF]) {
+            item.setData(d, forType: NSPasteboard.PasteboardType("public.jpeg"))
+            if let tiff = NSImage(data: d)?.tiffRepresentation { item.setData(tiff, forType: .tiff) }
+        } else if d.starts(with: [0x89, 0x50, 0x4E, 0x47]) {
+            item.setData(d, forType: .png)
+            if let tiff = NSImage(data: d)?.tiffRepresentation { item.setData(tiff, forType: .tiff) }
+        } else if d.starts(with: [0x25, 0x50, 0x44, 0x46]) {
+            item.setData(d, forType: NSPasteboard.PasteboardType("com.adobe.pdf"))
+        }
+        pb.writeObjects([item])
+        log("clipboard: \(item.types.map(\.rawValue).joined(separator: ", "))")
     }
 }
 
