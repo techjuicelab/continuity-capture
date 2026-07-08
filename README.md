@@ -20,6 +20,12 @@ Apple's peer-to-peer Wi-Fi (AWDL — the same transport AirDrop uses).
 - The capture is **also copied to the clipboard** — ⌘V pastes it straight into
   Slack/Notes/KakaoTalk (as image or file attachment) or Finder (as a file).
   One pasteboard item carries both the file reference and raw image/PDF data.
+- **Auto-paste into the app you fired the hotkey from**: AI apps and browsers
+  (Claude, ChatGPT, Gemini, Safari, Chrome) get the image pasted via ⌘V;
+  terminals and IDEs (Ghostty, Terminal, iTerm2, VS Code, Cursor, …) get the
+  escaped *file path* — exactly what CLI agents like Claude Code want. Unknown
+  apps get clipboard-only, no keystroke injection. Same behavior as
+  [AIShot](https://github.com/techjuicelab); disable with `--no-paste`.
 - Runs **only while invoked** — exits immediately after saving, cancelling, or timing out
 - Needs **no permissions at all**: no Accessibility, no camera/microphone, no UI scripting
 - Plays *Glass* on save, *Basso* when no device is available
@@ -54,6 +60,18 @@ open -na ContinuityCapture --args scan
 | `--device HINT` | preferred device name substring (falls back to first available) | `iPhone` |
 | `--timeout SEC` | how long to wait for the capture | `300` |
 | `--no-clipboard` | save to folder only, don't touch the clipboard | off |
+| `--no-paste` | copy to clipboard but never synthesize ⌘V | off |
+| `--mode auto\|path\|image` | force what gets pasted (path text vs image data) | `auto` |
+
+Auto-paste needs a one-time **Accessibility** grant (System Settings → Privacy
+& Security → Accessibility → ContinuityCapture); until granted the app prompts
+once and gracefully falls back to clipboard-only. Add your own paste targets
+without rebuilding:
+
+```sh
+defaults write com.techjuicelab.continuitycapture extraPathApps  -array-add "com.example.terminal"
+defaults write com.techjuicelab.continuitycapture extraImageApps -array-add "com.example.chatapp"
+```
 | `--self-test` | print the detected device list and exit (fires nothing) | — |
 
 Log: `/tmp/continuitycapture.log`
@@ -128,6 +146,11 @@ iCloud 딜레이가 없다.
 - 저장과 동시에 **클립보드에도 복사** — 촬영 직후 ⌘V로 카톡/메모/슬랙에는
   이미지·파일로, Finder에는 파일로 바로 붙여넣기 가능 (파일 참조 + 원본
   데이터를 한 항목에 담음)
+- **핫키를 누른 앱에 자동 붙여넣기**: AI 앱·브라우저(Claude, ChatGPT, Gemini,
+  Safari, Chrome)에는 이미지를 ⌘V로, 터미널·IDE(Ghostty, Terminal, iTerm2,
+  VS Code, Cursor…)에는 이스케이프된 **파일 경로**를 — Claude Code 같은 CLI
+  에이전트가 원하는 형태 그대로. 모르는 앱이면 클립보드까지만(키 입력 주입
+  안 함). AIShot과 동일한 동작이며 `--no-paste`로 끌 수 있음.
 - 상주 프로세스 없음: 호출 순간에만 실행, 저장/취소/타임아웃 시 즉시 종료
 - 손쉬운 사용(Accessibility) 권한, UI 스크립팅, iCloud 불필요
 - 저장 성공 시 "Glass" 사운드, 기기를 못 찾으면 "Basso" 사운드
@@ -163,6 +186,17 @@ open -na ContinuityCapture --args scan
 | `--device HINT` | 선호 기기 이름 일부 (없으면 첫 기기로 폴백) | `iPhone` |
 | `--timeout SEC` | 캡처 대기 시간 | `300` |
 | `--no-clipboard` | 폴더에만 저장하고 클립보드는 건드리지 않음 | 꺼짐 |
+| `--no-paste` | 클립보드까지만, ⌘V 자동 입력 안 함 | 꺼짐 |
+| `--mode auto\|path\|image` | 붙여넣기 형태 강제 (경로 텍스트 vs 이미지) | `auto` |
+
+자동 붙여넣기에는 **손쉬운 사용 권한**이 1회 필요하다(시스템 설정 → 개인정보
+보호 및 보안 → 손쉬운 사용 → ContinuityCapture). 허용 전에는 프롬프트를 한 번
+띄우고 클립보드까지만 동작한다. 붙여넣기 대상 앱은 재빌드 없이 추가 가능:
+
+```sh
+defaults write com.techjuicelab.continuitycapture extraPathApps  -array-add "com.example.terminal"
+defaults write com.techjuicelab.continuitycapture extraImageApps -array-add "com.example.chatapp"
+```
 | `--self-test` | 기기 목록만 출력하고 종료 (실행 안 함) | — |
 
 로그: `/tmp/continuitycapture.log`

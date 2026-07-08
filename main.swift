@@ -11,6 +11,54 @@
 // Usage: ContinuityCapture [photo|scan] [--out DIR] [--device HINT] [--dry-run] [--no-auto]
 
 import AppKit
+import ApplicationServices
+
+// MARK: - Auto-paste targets (mirrors AIShot's tables)
+
+// Extra bundle IDs can be added per machine, without rebuilding:
+//   defaults write com.techjuicelab.continuitycapture extraPathApps  -array-add "com.example.terminal"
+//   defaults write com.techjuicelab.continuitycapture extraImageApps -array-add "com.example.chatapp"
+func extraIDs(_ key: String) -> [String] {
+    (CFPreferencesCopyAppValue(key as CFString, "com.techjuicelab.continuitycapture" as CFString) as? [String]) ?? []
+}
+
+// Frontmost apps that get the *file path* pasted as text (CLI agents read by path).
+let pathPasteIDs = Set([
+    "com.mitchellh.ghostty",
+    "com.apple.Terminal",
+    "com.googlecode.iterm2",
+    "net.kovidgoyal.kitty",
+    "com.github.wez.wezterm",
+    "dev.warp.Warp",
+    "com.microsoft.VSCode",
+    "com.google.antigravity",
+    "com.todesktop.230313mzl4w4u92", // Cursor
+] + extraIDs("extraPathApps"))
+
+// Frontmost apps that get the *image/PDF* pasted (⌘V with data on the clipboard).
+let imagePasteIDs = Set([
+    "com.anthropic.claudefordesktop", // Claude.app
+    "com.openai.codex",               // Codex.app
+    "com.openai.chat",                // ChatGPT.app
+    "com.google.GeminiMacOS",         // Gemini.app
+    "com.apple.Safari",
+    "com.google.Chrome",
+] + extraIDs("extraImageApps"))
+// Any other frontmost app: clipboard only — paste manually with ⌘V.
+
+// Backslash-escape shell specials, exactly like dragging a file into a terminal.
+func shellEscape(_ path: String) -> String {
+    let specials: Set<Character> = [
+        " ", "(", ")", "[", "]", "{", "}", "<", ">",
+        "'", "\"", "`", "\\", "$", "&", ";", "|", "*", "?", "!", "#", "=",
+    ]
+    var out = ""
+    for ch in path {
+        if specials.contains(ch) { out.append("\\") }
+        out.append(ch)
+    }
+    return out
+}
 
 // MARK: - Config
 
@@ -26,6 +74,8 @@ struct Config {
     var accessory = true
     var clipboard = true
     var clipTest: String?
+    var paste = true
+    var pasteMode = "auto" // auto | path | image
     var captureTimeout: TimeInterval = 300
 
     static func parse() -> Config {
@@ -45,6 +95,8 @@ struct Config {
             case "--regular": c.accessory = false
             case "--no-clipboard": c.clipboard = false
             case "--clip-test": if !args.isEmpty { c.clipTest = args.removeFirst() }
+            case "--no-paste": c.paste = false
+            case "--mode": if !args.isEmpty { c.pasteMode = args.removeFirst() }
             case "--no-auto": c.autoTrigger = false
             case "--timeout": if !args.isEmpty { c.captureTimeout = Double(args.removeFirst()) ?? 300 }
             default: break
@@ -253,6 +305,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSText
     /// Probe whether the Continuity Camera item can be expanded and fired
     /// without displaying the menu at all.
     func selfTest() {
+        log("frontmost: \(launchFrontApp?.localizedName ?? "?") (\(launchFrontApp?.bundleIdentifier ?? "?"))")
+        let d = pasteDecision()
+        log("accessibility: \(AXIsProcessTrusted() ? "granted" : "NOT granted")")
+        log("would paste as: \(d.mode)\(d.auto ? "" : " (clipboard only)")")
         guard let fileMenu = NSApp.mainMenu?.item(at: 1)?.submenu else { return }
         log("before update(): \(describe(fileMenu))")
         fileMenu.update()
@@ -491,10 +547,63 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSText
         }
         received = true
         log("saved: \(p)")
-        copyToClipboard(d, path: p)
-        NSSound(named: "Glass")?.play()
+        if config.clipboard {
+            let decision = pasteDecision()
+            if decision.mode == "path" {
+                let pb = NSPasteboard.general
+                pb.clearContents()
+                pb.setString(shellEscape(p) + " ", forType: .string)
+                log("clipboard: escaped path")
+            } else {
+                copyToClipboard(d, path: p)
+            }
+            NSSound(named: "Glass")?.play()
+            if decision.auto { performPaste(decision.mode) }
+        } else {
+            NSSound(named: "Glass")?.play()
+        }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { NSApp.terminate(nil) }
         return true
+    }
+
+    /// Which representation to paste, and whether to inject ⌘V at all —
+    /// decided by the app that was frontmost when the hotkey fired.
+    func pasteDecision() -> (mode: String, auto: Bool) {
+        let id = launchFrontApp?.bundleIdentifier ?? "?"
+        switch config.pasteMode {
+        case "path", "image":
+            return (config.pasteMode, config.paste)
+        default:
+            if pathPasteIDs.contains(id) { return ("path", config.paste) }
+            if imagePasteIDs.contains(id) { return ("image", config.paste) }
+            return ("image", false) // unknown app: copy only, never inject keys
+        }
+    }
+
+    /// Re-activate the original app and synthesize ⌘V (mirrors AIShot).
+    /// Needs Accessibility; without it, prompt once and stay clipboard-only.
+    func performPaste(_ mode: String) {
+        guard AXIsProcessTrusted() else {
+            let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+            _ = AXIsProcessTrustedWithOptions(opts)
+            warn("accessibility not granted — copied to clipboard, paste with ⌘V (auto-paste once granted)")
+            return
+        }
+        if let front = launchFrontApp,
+           NSWorkspace.shared.frontmostApplication?.processIdentifier != front.processIdentifier {
+            front.activate(options: [])
+            usleep(250_000)
+        }
+        usleep(120_000) // let the pasteboard settle
+        let src = CGEventSource(stateID: .combinedSessionState)
+        let vDown = CGEvent(keyboardEventSource: src, virtualKey: 9, keyDown: true) // kVK_ANSI_V
+        vDown?.flags = .maskCommand
+        let vUp = CGEvent(keyboardEventSource: src, virtualKey: 9, keyDown: false)
+        vUp?.flags = .maskCommand
+        vDown?.post(tap: .cghidEventTap)
+        vUp?.post(tap: .cghidEventTap)
+        usleep(150_000) // let the events flush before exiting
+        log("pasted \(mode) into \(launchFrontApp?.localizedName ?? "?")")
     }
 
     /// Put the capture on the general pasteboard as ONE item carrying both a
@@ -522,6 +631,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSText
 }
 
 // MARK: - main
+
+// Snapshot the frontmost app before this process activates — the paste target.
+let launchFrontApp = NSWorkspace.shared.frontmostApplication
 
 let app = NSApplication.shared
 let delegate = AppDelegate()
