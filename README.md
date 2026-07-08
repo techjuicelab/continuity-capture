@@ -6,14 +6,15 @@
 
 <p align="center">
   Fire iPhone/iPad <b>Continuity Camera</b> from a hotkey and save photos &amp; scans straight into a folder.<br>
-  <i>No Preview window · no iCloud delay · no resident process · no Accessibility permission</i>
+  <i>No Preview window · no iCloud delay · no resident process · no UI scripting</i>
 </p>
 
 ---
 
 Press a hotkey on your Mac → your iPhone's camera opens → shoot → the JPEG lands
-in `~/Pictures/from_iphone` about a second later, transferred directly over
-Apple's peer-to-peer Wi-Fi (AWDL — the same transport AirDrop uses).
+in your macOS screenshot folder (or `~/Desktop`) about a second later,
+transferred directly over Apple's peer-to-peer Wi-Fi (AWDL — the same
+transport AirDrop uses).
 
 - **Photo** → `IMG_yyyyMMdd_HHmmss.jpg`, **Scan** → `Scan_yyyyMMdd_HHmmss.pdf`
   (multi-page → one PDF), saved into your **macOS screenshot folder** by
@@ -23,21 +24,39 @@ Apple's peer-to-peer Wi-Fi (AWDL — the same transport AirDrop uses).
   Slack/Notes/KakaoTalk (as image or file attachment) or Finder (as a file).
   One pasteboard item carries both the file reference and raw image/PDF data.
 - **Auto-paste into the app you fired the hotkey from**: AI apps and browsers
-  (Claude, ChatGPT, Gemini, Safari, Chrome) get the image pasted via ⌘V;
+  (Claude, ChatGPT, Codex, Gemini, Safari, Chrome) get the image pasted via ⌘V;
   terminals and IDEs (Ghostty, Terminal, iTerm2, VS Code, Cursor, …) get the
   escaped *file path* — exactly what CLI agents like Claude Code want. Unknown
   apps get clipboard-only, no keystroke injection. Same behavior as
-  [AIShot](https://github.com/techjuicelab); disable with `--no-paste`.
+  [AIShot](https://github.com/techjuicelab/aishot); disable with `--no-paste`.
 - Runs **only while invoked** — exits immediately after saving, cancelling, or timing out
-- Needs **no permissions at all**: no Accessibility, no camera/microphone, no UI scripting
+- Capturing itself needs **no permissions** (no camera/microphone, no UI
+  scripting). The optional auto-paste asks once for Accessibility, and saving
+  to a TCC-protected folder (Desktop/Documents/iCloud Drive) may show one
+  Files-and-Folders prompt — both degrade gracefully if declined
 - Plays *Glass* on save, *Basso* when no device is available
 
 ## Install
 
 **Option A — prebuilt app.** Download `ContinuityCapture.app.zip` from
 [Releases](https://github.com/techjuicelab/continuity-capture/releases), unzip
-into `~/Applications`. Universal binary (Apple Silicon + Intel), macOS 14+.
-Browser downloads are quarantined, so right-click → Open once on first launch.
+into `~/Applications`. Universal binary (Apple Silicon + Intel), macOS 14+
+(the headless trigger is verified on macOS 26; on 14/15 run `--self-test`
+first and check the log). Browser downloads are quarantined — the app is
+ad-hoc signed, so on macOS 14 use right-click → Open once; on macOS 15+
+attempt a launch, then approve it under System Settings → Privacy & Security
+→ "Open Anyway", or simply:
+
+```sh
+xattr -d com.apple.quarantine ~/Applications/ContinuityCapture.app
+```
+
+Heads-up: launching the app with no arguments immediately starts a **photo
+capture** (there is no window) — your iPhone's camera opening means it works;
+a *Basso* beep means no device was found (see Requirements; log:
+`/tmp/continuitycapture.log`). That first launch also registers the app with
+LaunchServices, which the `open -na ContinuityCapture` command below relies
+on. Option B does both automatically.
 
 **Option B — build from source** (requires Xcode Command Line Tools):
 
@@ -64,6 +83,7 @@ open -na ContinuityCapture --args scan
 | `--no-clipboard` | save to folder only, don't touch the clipboard | off |
 | `--no-paste` | copy to clipboard but never synthesize ⌘V | off |
 | `--mode auto\|path\|image` | force what gets pasted (path text vs image data) | `auto` |
+| `--self-test` | print the detected device list and exit (fires nothing) | — |
 
 Auto-paste needs a one-time **Accessibility** grant (System Settings → Privacy
 & Security → Accessibility → ContinuityCapture); until granted the app prompts
@@ -74,7 +94,6 @@ without rebuilding:
 defaults write com.techjuicelab.continuitycapture extraPathApps  -array-add "com.example.terminal"
 defaults write com.techjuicelab.continuitycapture extraImageApps -array-add "com.example.chatapp"
 ```
-| `--self-test` | print the detected device list and exit (fires nothing) | — |
 
 Set a permanent destination folder without rebuilding (survives updates;
 priority: `--out` flag > this setting > screenshot folder > `~/Desktop`):
@@ -91,9 +110,10 @@ Pick whichever launcher you already use — both point at the same
 `open -na ContinuityCapture` command, so latency is dominated by Continuity
 Camera's own device handshake (~1–2 s), not the launcher.
 
-### Alfred (lowest latency — recommended)
+### Alfred (lowest latency — requires the paid Powerpack)
 
 A prebuilt workflow lives in [`alfred/ContinuityCapture.alfredworkflow`](alfred/ContinuityCapture.alfredworkflow).
+No Powerpack? Use Shortcuts or Raycast below instead.
 
 1. **Double-click** the `.alfredworkflow` file → **Import**.
 2. Alfred strips hotkeys on import (to avoid clashes). Double-click the top
@@ -157,21 +177,38 @@ iCloud 딜레이가 없다.
 - 저장과 동시에 **클립보드에도 복사** — 촬영 직후 ⌘V로 카톡/메모/슬랙에는
   이미지·파일로, Finder에는 파일로 바로 붙여넣기 가능 (파일 참조 + 원본
   데이터를 한 항목에 담음)
-- **핫키를 누른 앱에 자동 붙여넣기**: AI 앱·브라우저(Claude, ChatGPT, Gemini,
-  Safari, Chrome)에는 이미지를 ⌘V로, 터미널·IDE(Ghostty, Terminal, iTerm2,
-  VS Code, Cursor…)에는 이스케이프된 **파일 경로**를 — Claude Code 같은 CLI
-  에이전트가 원하는 형태 그대로. 모르는 앱이면 클립보드까지만(키 입력 주입
-  안 함). AIShot과 동일한 동작이며 `--no-paste`로 끌 수 있음.
+- **핫키를 누른 앱에 자동 붙여넣기**: AI 앱·브라우저(Claude, ChatGPT, Codex,
+  Gemini, Safari, Chrome)에는 이미지를 ⌘V로, 터미널·IDE(Ghostty, Terminal,
+  iTerm2, VS Code, Cursor…)에는 이스케이프된 **파일 경로**를 — Claude Code
+  같은 CLI 에이전트가 원하는 형태 그대로. 모르는 앱이면 클립보드까지만(키
+  입력 주입 안 함). [AIShot](https://github.com/techjuicelab/aishot)과 동일한
+  동작이며 `--no-paste`로 끌 수 있음.
 - 상주 프로세스 없음: 호출 순간에만 실행, 저장/취소/타임아웃 시 즉시 종료
-- 손쉬운 사용(Accessibility) 권한, UI 스크립팅, iCloud 불필요
+- 캡처 자체에는 권한 불필요(카메라·마이크·UI 스크립팅 없음, iCloud 불필요).
+  선택 기능인 자동 붙여넣기는 손쉬운 사용 권한을 1회 요청하고, Desktop·
+  Documents·iCloud Drive 등 보호 폴더 저장 시 파일 접근 프롬프트가 한 번 뜰
+  수 있음 — 둘 다 거부해도 나머지는 정상 동작
 - 저장 성공 시 "Glass" 사운드, 기기를 못 찾으면 "Basso" 사운드
 
 ## 설치
 
 **A. 빌드된 앱 사용** — [Releases](https://github.com/techjuicelab/continuity-capture/releases)에서
 `ContinuityCapture.app.zip`을 받아 `~/Applications`에 풀기. 유니버설
-(Apple Silicon+Intel), macOS 14+. 브라우저로 내려받으면 격리 속성 때문에
-첫 실행만 우클릭 → 열기.
+(Apple Silicon+Intel), macOS 14+ (헤드리스 트리거는 macOS 26에서 검증됨;
+14/15에서는 먼저 `--self-test`로 로그를 확인할 것). 브라우저로 내려받으면
+격리 속성이 붙는데 앱이 ad-hoc 서명이라, macOS 14에서는 우클릭 → 열기 1회,
+**macOS 15+에서는** 실행 시도 후 시스템 설정 → 개인정보 보호 및 보안 →
+**"그래도 열기"**를 누르거나 다음 한 줄로 해제:
+
+```sh
+xattr -d com.apple.quarantine ~/Applications/ContinuityCapture.app
+```
+
+참고: 인자 없이 실행하면 곧바로 **사진 캡처가 시작**된다(창 없음) — 아이폰
+카메라가 열리면 정상, "Basso" 경고음이면 근처에 기기가 없는 것(요구 조건
+참고, 로그: `/tmp/continuitycapture.log`). 이 첫 실행이 LaunchServices에
+앱 이름을 등록해 아래의 `open -na ContinuityCapture` 명령이 동작하게 된다.
+B 방식은 이 과정이 자동이다.
 
 **B. 소스에서 빌드** — Command Line Tools 필요:
 
@@ -199,6 +236,7 @@ open -na ContinuityCapture --args scan
 | `--no-clipboard` | 폴더에만 저장하고 클립보드는 건드리지 않음 | 꺼짐 |
 | `--no-paste` | 클립보드까지만, ⌘V 자동 입력 안 함 | 꺼짐 |
 | `--mode auto\|path\|image` | 붙여넣기 형태 강제 (경로 텍스트 vs 이미지) | `auto` |
+| `--self-test` | 기기 목록만 출력하고 종료 (실행 안 함) | — |
 
 자동 붙여넣기에는 **손쉬운 사용 권한**이 1회 필요하다(시스템 설정 → 개인정보
 보호 및 보안 → 손쉬운 사용 → ContinuityCapture). 허용 전에는 프롬프트를 한 번
@@ -208,7 +246,6 @@ open -na ContinuityCapture --args scan
 defaults write com.techjuicelab.continuitycapture extraPathApps  -array-add "com.example.terminal"
 defaults write com.techjuicelab.continuitycapture extraImageApps -array-add "com.example.chatapp"
 ```
-| `--self-test` | 기기 목록만 출력하고 종료 (실행 안 함) | — |
 
 저장 폴더를 재빌드 없이 영구 지정 (우선순위: `--out` 플래그 > 이 설정 >
 스크린샷 폴더 > `~/Desktop`):
@@ -225,7 +262,9 @@ defaults write com.techjuicelab.continuitycapture outDir "~/Documents/Scans"
 전체 지연의 대부분은 Continuity Camera 자체의 기기 협상(~1–2초)이고 런처
 차이는 거의 없다.
 
-### Alfred (가장 빠름 — 추천)
+### Alfred (가장 빠름 — 유료 Powerpack 필요)
+
+Powerpack이 없으면 아래의 단축어 앱이나 Raycast를 사용.
 
 빌드된 워크플로가 [`alfred/ContinuityCapture.alfredworkflow`](alfred/ContinuityCapture.alfredworkflow)에 있다.
 
