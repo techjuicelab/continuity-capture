@@ -137,11 +137,17 @@ than Alfred, since it routes through the Shortcuts runtime.)
 ### Karabiner-Elements
 
 If you already run [Karabiner-Elements](https://karabiner-elements.pqrs.org),
-[`karabiner/continuitycapture.json`](karabiner/continuitycapture.json) provides
-two ready-made rules (⌥⌘P photo, ⌥⌘S scan). Copy it into
-`~/.config/karabiner/assets/complex_modifications/`, then enable the rules in
-Karabiner-Elements → Complex Modifications → **Add predefined rule**. Karabiner
-grabs the key at the HID level, so it works even when no launcher is running.
+install the ready-made rules with:
+
+```sh
+mkdir -p ~/.config/karabiner/assets/complex_modifications
+cp karabiner/continuitycapture.json ~/.config/karabiner/assets/complex_modifications/
+```
+
+Then Karabiner-Elements → Complex Modifications → **Add predefined rule** →
+enable "iPhone Photo" (<kbd>⌥⌘P</kbd>) and, if you want, "iPhone Scan"
+(<kbd>⌥⌘S</kbd>). Karabiner grabs the key at the HID level, so it works even
+when no launcher is running.
 
 ### Raycast / others
 

@@ -134,12 +134,17 @@ Powerpack이 없으면 아래의 단축어 앱이나 Raycast를 사용.
 
 ### Karabiner-Elements
 
-[Karabiner-Elements](https://karabiner-elements.pqrs.org)를 이미 쓴다면
-[`karabiner/continuitycapture.json`](karabiner/continuitycapture.json)에 규칙
-2개(⌥⌘P 사진, ⌥⌘S 스캔)가 준비되어 있다.
-`~/.config/karabiner/assets/complex_modifications/`에 복사한 뒤 Karabiner
-설정 → Complex Modifications → **Add predefined rule**에서 켜면 된다. HID
-레벨에서 키를 잡으므로 런처가 안 떠 있어도 동작한다.
+[Karabiner-Elements](https://karabiner-elements.pqrs.org)를 이미 쓴다면 준비된
+규칙을 명령 두 줄로 설치:
+
+```sh
+mkdir -p ~/.config/karabiner/assets/complex_modifications
+cp karabiner/continuitycapture.json ~/.config/karabiner/assets/complex_modifications/
+```
+
+그다음 Karabiner-Elements → Complex Modifications → **Add predefined rule**에서
+"iPhone Photo"(<kbd>⌥⌘P</kbd>)를, 원하면 "iPhone Scan"(<kbd>⌥⌘S</kbd>)도
+활성화. HID 레벨에서 키를 잡으므로 런처가 안 떠 있어도 동작한다.
 
 ### Raycast / 기타
 
