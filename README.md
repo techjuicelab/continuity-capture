@@ -56,10 +56,34 @@ Log: `/tmp/continuitycapture.log`
 
 ## Hotkey
 
+Pick whichever launcher you already use — both point at the same
+`open -na ContinuityCapture` command, so latency is dominated by Continuity
+Camera's own device handshake (~1–2 s), not the launcher.
+
+### Alfred (lowest latency — recommended)
+
+A prebuilt workflow lives in [`alfred/ContinuityCapture.alfredworkflow`](alfred/ContinuityCapture.alfredworkflow).
+
+1. **Double-click** the `.alfredworkflow` file → **Import**.
+2. Alfred strips hotkeys on import (to avoid clashes). Double-click the top
+   **Hotkey** node, click its field, and press your combo — e.g. **⌥⌘P**. Do
+   the same for the lower Hotkey node if you want scan (e.g. **⌥⌘S**).
+3. Done. Press the hotkey from any app; your iPhone's camera opens.
+
+No hotkey needed to try it: open Alfred and type `photo` (or `scan`) — the
+keyword triggers are already wired.
+
+### Shortcuts.app
+
 Import the two signed shortcuts in [`shortcuts/`](shortcuts/) (double-click →
 Add), enable *Settings → Advanced → Allow Running Scripts* in the Shortcuts
-app, then assign a keyboard shortcut in each shortcut's info panel.
-Alfred/Raycast work just as well — bind the `open -na …` one-liner above.
+app, then assign a keyboard shortcut in each shortcut's info panel. Also
+runnable from Spotlight/Siri by name. (Slightly higher key-to-launch latency
+than Alfred, since it routes through the Shortcuts runtime.)
+
+### Raycast / others
+
+Bind a *Run Shell Script* command to `open -na ContinuityCapture --args photo`.
 
 ## How it works
 
@@ -137,10 +161,33 @@ open -na ContinuityCapture --args scan
 
 ## 단축키 연결
 
+어떤 런처를 쓰든 결국 같은 `open -na ContinuityCapture` 명령을 실행하므로,
+전체 지연의 대부분은 Continuity Camera 자체의 기기 협상(~1–2초)이고 런처
+차이는 거의 없다.
+
+### Alfred (가장 빠름 — 추천)
+
+빌드된 워크플로가 [`alfred/ContinuityCapture.alfredworkflow`](alfred/ContinuityCapture.alfredworkflow)에 있다.
+
+1. `.alfredworkflow` 파일을 **더블클릭 → Import**.
+2. Alfred는 충돌 방지를 위해 가져올 때 핫키를 비워둔다. 위쪽 **Hotkey** 노드를
+   더블클릭 → 입력란 클릭 → 원하는 조합(예: **⌥⌘P**)을 실제로 누른다. 스캔도
+   쓰려면 아래 Hotkey 노드에 **⌥⌘S** 등을 지정.
+3. 끝. 어느 앱에서든 핫키를 누르면 아이폰 카메라가 열린다.
+
+핫키 없이 바로 써보려면: Alfred 바를 열고 `photo`(또는 `scan`)를 타이핑하면
+키워드 트리거로 실행된다.
+
+### 단축어(Shortcuts) 앱
+
 `shortcuts/`의 `iPhone Photo`·`iPhone Scan`을 더블클릭해 가져오고, 단축어 앱
 설정 → 고급 → **"스크립트 실행 허용"**을 켠 뒤(1회), 각 단축어 상세(ⓘ)에서
-키보드 단축키를 지정한다. Alfred/Raycast에 위의 `open -na …` 한 줄을 넣어도
-동일하게 동작한다.
+키보드 단축키를 지정한다. Spotlight/Siri에서 이름으로도 실행된다. (단축어
+런타임을 거쳐 Alfred보다 키 입력~실행 지연이 약간 크다.)
+
+### Raycast / 기타
+
+*Run Shell Script* 명령에 `open -na ContinuityCapture --args photo`를 넣으면 된다.
 
 ## 동작 원리
 
