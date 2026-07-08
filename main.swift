@@ -64,7 +64,7 @@ func shellEscape(_ path: String) -> String {
 
 struct Config {
     var action = "photo"                 // photo | scan
-    var outDir = NSString(string: "~/Pictures/from_iphone").expandingTildeInPath
+    var outDir = ""                      // resolved in parse()
     var deviceHint = "iPhone"
     var dryRun = false
     var dryRunHold: TimeInterval = 1.6
@@ -78,14 +78,32 @@ struct Config {
     var pasteMode = "auto" // auto | path | image
     var captureTimeout: TimeInterval = 300
 
+    /// Destination priority: --out flag > `defaults write … outDir` >
+    /// the user's screenshot folder (com.apple.screencapture) > ~/Desktop.
+    static func resolveOutDir(_ explicit: String?) -> String {
+        if let d = explicit, !d.isEmpty { return NSString(string: d).expandingTildeInPath }
+        if let d = CFPreferencesCopyAppValue("outDir" as CFString,
+                                             "com.techjuicelab.continuitycapture" as CFString) as? String,
+           !d.isEmpty {
+            return NSString(string: d).expandingTildeInPath
+        }
+        if let d = CFPreferencesCopyAppValue("location" as CFString,
+                                             "com.apple.screencapture" as CFString) as? String,
+           !d.isEmpty {
+            return NSString(string: d).expandingTildeInPath
+        }
+        return NSHomeDirectory() + "/Desktop"
+    }
+
     static func parse() -> Config {
         var c = Config()
+        var explicitOut: String?
         var args = Array(CommandLine.arguments.dropFirst())
         while !args.isEmpty {
             let a = args.removeFirst()
             switch a {
             case "photo", "scan": c.action = a
-            case "--out": if !args.isEmpty { c.outDir = NSString(string: args.removeFirst()).expandingTildeInPath }
+            case "--out": if !args.isEmpty { explicitOut = args.removeFirst() }
             case "--device": if !args.isEmpty { c.deviceHint = args.removeFirst() }
             case "--dry-run": c.dryRun = true
             case "--hold": if !args.isEmpty { c.dryRunHold = Double(args.removeFirst()) ?? 1.6 }
@@ -102,6 +120,7 @@ struct Config {
             default: break
             }
         }
+        c.outDir = resolveOutDir(explicitOut)
         return c
     }
 
@@ -236,6 +255,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSText
             }
         }
 
+        // Probe destination writability up front (before firing the camera):
+        // surfaces the Files & Folders / iCloud Drive permission prompt early
+        // instead of losing a capture to a denied write.
+        if !config.dryRun && !config.selfTest && !config.contextMenuMode {
+            let fm = FileManager.default
+            try? fm.createDirectory(atPath: config.outDir, withIntermediateDirectories: true)
+            let probe = config.outDir + "/.cc-write-test"
+            if !fm.createFile(atPath: probe, contents: Data()) {
+                warn("cannot write to \(config.outDir) — allow ContinuityCapture under System Settings → Privacy & Security → Files and Folders, or change outDir")
+                NSSound(named: "Basso")?.play()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { NSApp.terminate(nil) }
+                return
+            }
+            try? fm.removeItem(atPath: probe)
+        }
+
         if let testFile = config.clipTest {
             // exercise the save+clipboard pipeline with a local file (no capture)
             if let d = try? Data(contentsOf: URL(fileURLWithPath: testFile)), saveData(d, suggestedName: nil) {
@@ -305,6 +340,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSText
     /// Probe whether the Continuity Camera item can be expanded and fired
     /// without displaying the menu at all.
     func selfTest() {
+        log("outDir: \(config.outDir)")
         log("frontmost: \(launchFrontApp?.localizedName ?? "?") (\(launchFrontApp?.bundleIdentifier ?? "?"))")
         let d = pasteDecision()
         log("accessibility: \(AXIsProcessTrusted() ? "granted" : "NOT granted")")

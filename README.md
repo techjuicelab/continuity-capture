@@ -15,8 +15,10 @@ Press a hotkey on your Mac → your iPhone's camera opens → shoot → the JPEG
 in `~/Pictures/from_iphone` about a second later, transferred directly over
 Apple's peer-to-peer Wi-Fi (AWDL — the same transport AirDrop uses).
 
-- **Photo** → `~/Pictures/from_iphone/IMG_yyyyMMdd_HHmmss.jpg`
-- **Scan** → `~/Pictures/from_iphone/Scan_yyyyMMdd_HHmmss.pdf` (multi-page → one PDF)
+- **Photo** → `IMG_yyyyMMdd_HHmmss.jpg`, **Scan** → `Scan_yyyyMMdd_HHmmss.pdf`
+  (multi-page → one PDF), saved into your **macOS screenshot folder** by
+  default (`com.apple.screencapture location`, falling back to `~/Desktop`) —
+  configurable without rebuilding, see below
 - The capture is **also copied to the clipboard** — ⌘V pastes it straight into
   Slack/Notes/KakaoTalk (as image or file attachment) or Finder (as a file).
   One pasteboard item carries both the file reference and raw image/PDF data.
@@ -56,7 +58,7 @@ open -na ContinuityCapture --args scan
 | Flag | Description | Default |
 |---|---|---|
 | `photo` / `scan` | take a photo / scan documents | `photo` |
-| `--out DIR` | destination folder | `~/Pictures/from_iphone` |
+| `--out DIR` | destination folder | screenshot folder → `~/Desktop` |
 | `--device HINT` | preferred device name substring (falls back to first available) | `iPhone` |
 | `--timeout SEC` | how long to wait for the capture | `300` |
 | `--no-clipboard` | save to folder only, don't touch the clipboard | off |
@@ -73,6 +75,13 @@ defaults write com.techjuicelab.continuitycapture extraPathApps  -array-add "com
 defaults write com.techjuicelab.continuitycapture extraImageApps -array-add "com.example.chatapp"
 ```
 | `--self-test` | print the detected device list and exit (fires nothing) | — |
+
+Set a permanent destination folder without rebuilding (survives updates;
+priority: `--out` flag > this setting > screenshot folder > `~/Desktop`):
+
+```sh
+defaults write com.techjuicelab.continuitycapture outDir "~/Documents/Scans"
+```
 
 Log: `/tmp/continuitycapture.log`
 
@@ -141,8 +150,10 @@ Notes for fellow tinkerers, measured on macOS 26:
 네이티브 헬퍼 앱. 전송은 AWDL(AirDrop과 같은 기기 간 직결 Wi-Fi)로 이뤄져
 iCloud 딜레이가 없다.
 
-- 사진 → `~/Pictures/from_iphone/IMG_yyyyMMdd_HHmmss.jpg`
-- 스캔 → `~/Pictures/from_iphone/Scan_yyyyMMdd_HHmmss.pdf` (여러 장 = PDF 한 개)
+- 사진 → `IMG_yyyyMMdd_HHmmss.jpg`, 스캔 → `Scan_yyyyMMdd_HHmmss.pdf`
+  (여러 장 = PDF 한 개) — 기본 저장 위치는 **macOS 스크린샷 폴더**
+  (`com.apple.screencapture location`, 없으면 `~/Desktop`)이고 재빌드 없이
+  변경 가능(아래 참고)
 - 저장과 동시에 **클립보드에도 복사** — 촬영 직후 ⌘V로 카톡/메모/슬랙에는
   이미지·파일로, Finder에는 파일로 바로 붙여넣기 가능 (파일 참조 + 원본
   데이터를 한 항목에 담음)
@@ -182,7 +193,7 @@ open -na ContinuityCapture --args scan
 | 플래그 | 설명 | 기본값 |
 |---|---|---|
 | `photo` / `scan` | 사진 찍기 / 문서 스캔 | `photo` |
-| `--out DIR` | 저장 폴더 | `~/Pictures/from_iphone` |
+| `--out DIR` | 저장 폴더 | 스크린샷 폴더 → `~/Desktop` |
 | `--device HINT` | 선호 기기 이름 일부 (없으면 첫 기기로 폴백) | `iPhone` |
 | `--timeout SEC` | 캡처 대기 시간 | `300` |
 | `--no-clipboard` | 폴더에만 저장하고 클립보드는 건드리지 않음 | 꺼짐 |
@@ -198,6 +209,13 @@ defaults write com.techjuicelab.continuitycapture extraPathApps  -array-add "com
 defaults write com.techjuicelab.continuitycapture extraImageApps -array-add "com.example.chatapp"
 ```
 | `--self-test` | 기기 목록만 출력하고 종료 (실행 안 함) | — |
+
+저장 폴더를 재빌드 없이 영구 지정 (우선순위: `--out` 플래그 > 이 설정 >
+스크린샷 폴더 > `~/Desktop`):
+
+```sh
+defaults write com.techjuicelab.continuitycapture outDir "~/Documents/Scans"
+```
 
 로그: `/tmp/continuitycapture.log`
 
