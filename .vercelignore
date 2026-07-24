@@ -1,0 +1,6 @@
+.build/
+*.app/
+.git/
+alfred/
+shortcuts/
+karabiner/
